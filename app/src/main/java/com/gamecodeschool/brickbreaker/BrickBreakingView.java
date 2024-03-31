@@ -17,6 +17,7 @@ import java.util.ArrayList;
 public class BrickBreakingView extends SurfaceView implements Runnable{
 
 
+    private ArrayList<BreakableBrick> breakableBricks = new ArrayList<>(); //List of BREAKABLE gifts
 
     private Ball ball;
     private int BALL_RADIUS = 20;
@@ -175,9 +176,6 @@ public class BrickBreakingView extends SurfaceView implements Runnable{
         bottomLeftBrick.setInPlay(paddle.atLeftBottomLimit());
         bottomRightBrick.setInPlay(paddle.atRightBottomLimit());
 
-
-
-
     }
 
     private void handleBallPaddleCollision() {
@@ -271,11 +269,13 @@ public class BrickBreakingView extends SurfaceView implements Runnable{
                 b.draw(mCanvas,mPaint);
             }
 
+
+            //Draw the stats
             drawStats(mCanvas);
-
-
             // Draw the ball
             mCanvas.drawCircle(ball.getPosX(), ball.getPosY(), ball.getRadius(), mPaint);
+            //Draw BreakableBricks
+            drawBreakableBricks();
 
             mCanvas.drawBitmap(leftButtonBitmap,null, mLeftButtonCoords,mPaint);
             mCanvas.drawBitmap(rightButtonBitmap,null, mRightButtonCoords,mPaint);
