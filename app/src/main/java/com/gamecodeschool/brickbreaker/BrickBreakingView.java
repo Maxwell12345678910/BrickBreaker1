@@ -162,15 +162,10 @@ public class BrickBreakingView extends SurfaceView implements Runnable{
             movePaddleDown(1f);
         }
 
-        if (checkBallPaddleCollision()) {
-            handleBallPaddleCollision();
-        }
-        else if (checkBallHitBrick()) {
-            // Handle ball-brick collision
-        }
-        else if (checkBallHitWall()) {
-            // Handle ball-wall collision
-        }
+
+        checkBallPaddleCollision();
+        checkBallHitBrick();
+        checkBallHitWall();
 
 
         bottomLeftBrick.setInPlay(paddle.atLeftBottomLimit());
@@ -178,14 +173,9 @@ public class BrickBreakingView extends SurfaceView implements Runnable{
 
     }
 
-    private void handleBallPaddleCollision() {
-        // Implement collision response for ball-paddle collision
-        // For example, reverse the vertical direction of the ball
-        ball.setIncreaseY(-Math.abs(ball.getIncreaseY()));
-        // Add any additional logic needed
-    }
 
-    private boolean checkBallPaddleCollision() {
+
+    private void checkBallPaddleCollision() {
         RectF ballBounds = ball.getBounds(); // Get the bounds of the ball
         RectF paddleBounds = paddle.getPosition(); // Get the bounds of the paddle
 
@@ -194,10 +184,10 @@ public class BrickBreakingView extends SurfaceView implements Runnable{
             // Implement collision response here
             // For example, reverse the vertical direction of the ball
             ball.setIncreaseY(-Math.abs(ball.getIncreaseY()));
-            return true; // Collision detected
+//            return true; // Collision detected
         }
 
-        return false; // No collision detected
+//        return false; // No collision detected
     }
 
     private boolean checkBallHitBrick() {
@@ -275,7 +265,7 @@ public class BrickBreakingView extends SurfaceView implements Runnable{
             // Draw the ball
             mCanvas.drawCircle(ball.getPosX(), ball.getPosY(), ball.getRadius(), mPaint);
             //Draw BreakableBricks
-            drawBreakableBricks();
+//            drawBreakableBricks();
 
             mCanvas.drawBitmap(leftButtonBitmap,null, mLeftButtonCoords,mPaint);
             mCanvas.drawBitmap(rightButtonBitmap,null, mRightButtonCoords,mPaint);
