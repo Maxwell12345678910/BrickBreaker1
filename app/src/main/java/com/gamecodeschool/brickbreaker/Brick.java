@@ -13,9 +13,9 @@ public class Brick {
     private RectF limits;
     private boolean horizontalReflection;
     private boolean verticalReflection;
-    private int lifeLeft; // ranges from 0 to 3, 0 means unbreakable brick.
+    public int lifeLeft; // ranges from 0 to 3, 0 means unbreakable brick.
     // if lifeLeft becomes 0 after decrementing, brick is broken, and must set inPlay to false.
-    private boolean inPlay;
+    public boolean inPlay;
     public Brick(float left, float top, float right, float bottom, boolean horizontalReflection,
                  boolean verticalReflection, int lifeLeft){
         position = new RectF(left, top, right, bottom);

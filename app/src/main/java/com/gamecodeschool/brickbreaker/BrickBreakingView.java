@@ -15,10 +15,15 @@ import android.view.SurfaceView;
 import java.util.ArrayList;
 
 public class BrickBreakingView extends SurfaceView implements Runnable{
-    private final float BALL_SPEED = 15f; // How many pixels to travel diagonally
-                                          // each time the screen gets updated.
-                                          // e.g. With 15f, 15 pixels right, and 15 pixels up.
-                                          // must be <= BRICK_THICKNESS
+
+
+
+    private Ball ball;
+    private int BALL_RADIUS = 20;
+    private final float BALL_SPEED = 15f; // How many pixels to travel diagonally // each time the screen gets updated.
+    // e.g. With 15f, 15 pixels right, and 15 pixels up.
+    // must be <= BRICK_THICKNESS
+
     final static int BRICK_THICKNESS = 40;
     private int PADDLE_WIDTH; // The constructor determines this based on screen width
     private Brick paddle; // The paddle
@@ -59,6 +64,9 @@ public class BrickBreakingView extends SurfaceView implements Runnable{
     private volatile boolean downButtonDown = false;
     public BrickBreakingView(Context context, int x, int y) {
         super(context);
+
+        ball = new Ball(mScreenX / 2, mScreenY / 2, 5f, -5f, BALL_RADIUS);
+
 
         mScreenX = x;
         mScreenY = y;
@@ -140,6 +148,9 @@ public class BrickBreakingView extends SurfaceView implements Runnable{
         mBrickList.add(paddle);
     }
     public void update(){
+
+        ball.update();
+
         if(leftButtonDown){
             movePaddleLeft(1f);
         } else if(rightButtonDown){
@@ -149,9 +160,103 @@ public class BrickBreakingView extends SurfaceView implements Runnable{
         } else if(downButtonDown){
             movePaddleDown(1f);
         }
+
+        if (checkBallPaddleCollision()) {
+            handleBallPaddleCollision();
+        }
+        else if (checkBallBrickCollision()) {
+            // Handle ball-brick collision
+        }
+        else if (checkBallWallCollision()) {
+            // Handle ball-wall collision
+        }
+
+
         bottomLeftBrick.setInPlay(paddle.atLeftBottomLimit());
         bottomRightBrick.setInPlay(paddle.atRightBottomLimit());
+
+
+
+
     }
+
+    private void handleBallPaddleCollision() {
+        // Implement collision response for ball-paddle collision
+        // For example, reverse the vertical direction of the ball
+        ball.setIncreaseY(-Math.abs(ball.getIncreaseY()));
+        // Add any additional logic needed
+    }
+
+    private boolean checkBallPaddleCollision() {
+        RectF ballBounds = ball.getBounds(); // Get the bounds of the ball
+        RectF paddleBounds = paddle.getPosition(); // Get the bounds of the paddle
+
+        // Check if the ball intersects with the paddle
+        if (RectF.intersects(ballBounds, paddleBounds)) {
+            // Implement collision response here
+            // For example, reverse the vertical direction of the ball
+            ball.setIncreaseY(-Math.abs(ball.getIncreaseY()));
+            return true; // Collision detected
+        }
+
+        return false; // No collision detected
+    }
+
+    private boolean checkBallBrickCollision() {
+        boolean collided = false;
+        for (Brick brick : mBrickList) {
+            if (brick.inPlay && RectF.intersects(brick.getPosition(), ball.getBounds())) {
+                // Calculate the center point of the ball
+                float ballCenterX = ball.getPosX();
+                float ballCenterY = ball.getPosY();
+
+                // Check if the center of the ball lies within the bounds of the brick
+                if (ballCenterX >= brick.getPosition().left && ballCenterX <= brick.getPosition().right
+                        && ballCenterY >= brick.getPosition().top && ballCenterY <= brick.getPosition().bottom) {
+                    collided = true;
+                    // Handle collision logic here (e.g., bouncing off the brick)
+                    break; // Exit the loop after handling collision with one brick
+                }
+            }
+        }
+        return collided;
+    }
+
+
+
+    private boolean checkBallWallCollision() {
+        boolean collided = false;
+
+        // Check if the ball collides with any of the walls
+        // Left wall
+        if (ball.getPosX() - ball.getRadius() <= playFieldCoords.left) {
+            ball.setIncreaseX(Math.abs(ball.getIncreaseX())); // Reverse X direction
+            collided = true;
+        }
+        // Right wall
+        else if (ball.getPosX() + ball.getRadius() >= playFieldCoords.right) {
+            ball.setIncreaseX(-Math.abs(ball.getIncreaseX())); // Reverse X direction
+            collided = true;
+        }
+        // Top wall
+        if (ball.getPosY() - ball.getRadius() <= playFieldCoords.top) {
+            ball.setIncreaseY(Math.abs(ball.getIncreaseY())); // Reverse Y direction
+            collided = true;
+        }
+        // Bottom wall (missed the paddle)
+        else if (ball.getPosY() + ball.getRadius() >= playFieldCoords.bottom) {
+            // Handle game over or reset ball position
+            // For now, let's reset the ball position to the center
+            ball.setPosX(mScreenX / 2);
+            ball.setPosY(mScreenY / 2);
+            // You might want to set increaseX and increaseY to appropriate initial values
+            collided = true;
+        }
+
+        return collided;
+    }
+
+
     private void draw() {
         if (mOurHolder.getSurface().isValid()) {
             mCanvas = mOurHolder.lockCanvas();
@@ -162,6 +267,12 @@ public class BrickBreakingView extends SurfaceView implements Runnable{
             for(Brick b: mBrickList){
                 b.draw(mCanvas,mPaint);
             }
+
+            drawStats(mCanvas);
+
+
+            // Draw the ball
+            mCanvas.drawCircle(ball.getPosX(), ball.getPosY(), ball.getRadius(), mPaint);
 
             mCanvas.drawBitmap(leftButtonBitmap,null, mLeftButtonCoords,mPaint);
             mCanvas.drawBitmap(rightButtonBitmap,null, mRightButtonCoords,mPaint);
@@ -239,6 +350,37 @@ public class BrickBreakingView extends SurfaceView implements Runnable{
                 downButtonDown = false;
             }
         }
+
+        // Check for left paddle movement
+        if (motionEvent.getAction() == MotionEvent.ACTION_DOWN && motionEvent.getX() < mScreenX / 2) {
+            startNewGame();
+        }
+
         return true;
     }
+
+    private void startNewGame() {
+        // Reset necessary game parameters
+        // Load ball onto paddle
+        ball.setPosX(paddle.getPosition().centerX());
+        ball.setPosY(paddle.getPosition().top - ball.getRadius());
+        ball.setIncreaseX(5f); // Set initial velocity
+        ball.setIncreaseY(-5f);
+    }
+
+    private void drawStats(Canvas canvas) {
+        Paint statsPaint = new Paint();
+        statsPaint.setColor(Color.WHITE);
+        statsPaint.setTextSize(40);
+
+        // Draw time elapsed
+        canvas.drawText("Time: " + "00:00:00", 20, 50, statsPaint);
+
+        // Draw number of hits needed
+        canvas.drawText("Hits: " + "072", mScreenX / 2 - 50, 50, statsPaint);
+
+        // Draw number of balls left
+        canvas.drawText("Balls: " + "01", mScreenX - 200, 50, statsPaint);
+    }
+
 }
