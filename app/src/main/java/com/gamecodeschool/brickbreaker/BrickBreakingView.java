@@ -229,17 +229,18 @@ public class BrickBreakingView extends SurfaceView implements Runnable{
 
         // Check if the ball collides with any of the walls
         // Left wall
-        if (ball.getPosX() - ball.getRadius() <= playFieldCoords.left) {
+        if (ball.getPosX() - ball.getRadius() <= (playFieldCoords.left+40)) {
             ball.setIncreaseX(Math.abs(ball.getIncreaseX())); // Reverse X direction
             collided = true;
         }
         // Right wall
-        else if (ball.getPosX() + ball.getRadius() >= playFieldCoords.right) {
+        else if (ball.getPosX() + ball.getRadius() >= (playFieldCoords.right-40)) {
             ball.setIncreaseX(-Math.abs(ball.getIncreaseX())); // Reverse X direction
             collided = true;
         }
+
         // Top wall
-        if (ball.getPosY() - ball.getRadius() <= playFieldCoords.top) {
+        if (ball.getPosY() - ball.getRadius() <= (playFieldCoords.top+40)) {
             ball.setIncreaseY(Math.abs(ball.getIncreaseY())); // Reverse Y direction
             collided = true;
         }
