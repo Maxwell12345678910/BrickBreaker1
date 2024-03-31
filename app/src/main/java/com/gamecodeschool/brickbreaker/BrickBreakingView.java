@@ -164,10 +164,10 @@ public class BrickBreakingView extends SurfaceView implements Runnable{
         if (checkBallPaddleCollision()) {
             handleBallPaddleCollision();
         }
-        else if (checkBallBrickCollision()) {
+        else if (checkBallHitBrick()) {
             // Handle ball-brick collision
         }
-        else if (checkBallWallCollision()) {
+        else if (checkBallHitWall()) {
             // Handle ball-wall collision
         }
 
@@ -202,7 +202,7 @@ public class BrickBreakingView extends SurfaceView implements Runnable{
         return false; // No collision detected
     }
 
-    private boolean checkBallBrickCollision() {
+    private boolean checkBallHitBrick() {
         boolean collided = false;
         for (Brick brick : mBrickList) {
             if (brick.inPlay && RectF.intersects(brick.getPosition(), ball.getBounds())) {
@@ -224,7 +224,7 @@ public class BrickBreakingView extends SurfaceView implements Runnable{
 
 
 
-    private boolean checkBallWallCollision() {
+    private boolean checkBallHitWall() {
         boolean collided = false;
 
         // Check if the ball collides with any of the walls
@@ -243,8 +243,10 @@ public class BrickBreakingView extends SurfaceView implements Runnable{
             ball.setIncreaseY(Math.abs(ball.getIncreaseY())); // Reverse Y direction
             collided = true;
         }
-        // Bottom wall (missed the paddle)
-        else if (ball.getPosY() + ball.getRadius() >= playFieldCoords.bottom) {
+
+
+        // (missed the paddle)
+        else if (ball.getPosY() + ball.getRadius() >= playFieldCoords.bottom) { // BALL FELL OFF THE SCREEN
             // Handle game over or reset ball position
             // For now, let's reset the ball position to the center
             ball.setPosX(mScreenX / 2);
