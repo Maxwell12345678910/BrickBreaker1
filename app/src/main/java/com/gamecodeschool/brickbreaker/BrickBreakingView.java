@@ -17,7 +17,7 @@ import java.util.ArrayList;
 public class BrickBreakingView extends SurfaceView implements Runnable{
 
 
-    private ArrayList<BreakableBrick> breakableBricks = new ArrayList<>(); //List of BREAKABLE gifts
+    public ArrayList<BreakableBrick> breakableBricks = new ArrayList<>(); //List of BREAKABLE gifts
 
     private Ball ball;
     private int BALL_RADIUS = 20;
@@ -30,7 +30,7 @@ public class BrickBreakingView extends SurfaceView implements Runnable{
     private Brick paddle; // The paddle
     final private float PCBPY = 5f/6f; // Paddle Control Button Position Y: 5/6th down the screen length
     final private float PFBPY = 4f/5f; // Play Field Bottom Position Y: 4/5th down the screen length
-    final private int PFTPYAbs = 200; // Play Field Top Position Y Absolute
+    final private int PFTPYAbs = 150; // Play Field Top Position Y Absolute
     private Brick bottomLeftBrick; // The brick that appears at bottom left when the paddle is there
     private Brick bottomRightBrick; // The brick that appears at the bottom right when the paddle is there
     private RectF playFieldCoords; // The play field coordinates including the top, side, bottom bricks
@@ -63,6 +63,8 @@ public class BrickBreakingView extends SurfaceView implements Runnable{
     private volatile boolean leftButtonDown = false;
     private volatile boolean upButtonDown = false;
     private volatile boolean downButtonDown = false;
+
+    //CONSTRUCTOR , STUFF THAT SHOULD BE DONE FOR FIRST GAME LAUNCH SHOULD BE TRIGGERED HERE
     public BrickBreakingView(Context context, int x, int y) {
         super(context);
 
@@ -147,7 +149,42 @@ public class BrickBreakingView extends SurfaceView implements Runnable{
                 BRICK_THICKNESS,(playFieldCoords.top+ playFieldCoords.bottom)/2f,
                 mScreenX-BRICK_THICKNESS-1,(int)(playFieldBottomPositionY)-1);
         mBrickList.add(paddle);
+
+        initBreakBricks();
+
     }
+
+    private void initBreakBricks() {
+        final int BRICK_WIDTH = 70;
+        final int BRICK_HEIGHT = 40;
+        final int BRICK_GAP = 5;
+
+        // Determine the position of the first row of bricks
+        int startX = 88;  // Adjusted to 80 pixels to the right
+        int startY = 300; // Adjusted to 300 pixels further down vertically
+
+        // Create breakable bricks for each row
+        for (int row = 0; row < 3; row++) { //iterates through each row
+
+            if(row>=1) //between the 1st and 2nd row we add 40 px of space (a bricks height worth)
+                startY+=40;
+
+
+            for (int col = 0; col < 12; col++) { //iterates 12 times for BreakableBrick item in each row
+                // Calculate position of the current brick
+                int left = startX + col * (BRICK_WIDTH + BRICK_GAP);
+                int top = startY + row * (BRICK_HEIGHT + BRICK_GAP);
+                int right = left + BRICK_WIDTH;
+                int bottom = top + BRICK_HEIGHT;
+
+                // Create breakable brick and add it to the list
+                RectF position = new RectF(left, top, right, bottom);
+                BreakableBrick brick = new BreakableBrick(position, BreakableBrick.COLOR_GREEN,true);
+                breakableBricks.add(brick);
+            }
+        }
+    }
+
     public void update(){
 
         ball.update();
@@ -164,7 +201,7 @@ public class BrickBreakingView extends SurfaceView implements Runnable{
 
 
         checkBallPaddleCollision();
-        checkBallHitBrick();
+//        checkBallHitBrick();
         checkBallHitWall();
 
 
@@ -190,29 +227,28 @@ public class BrickBreakingView extends SurfaceView implements Runnable{
 //        return false; // No collision detected
     }
 
-    private boolean checkBallHitBrick() {
-        boolean collided = false;
-        for (Brick brick : mBrickList) {
-            if (brick.inPlay && RectF.intersects(brick.getPosition(), ball.getBounds())) {
-                // Calculate the center point of the ball
-                float ballCenterX = ball.getPosX();
-                float ballCenterY = ball.getPosY();
-
-                // Check if the center of the ball lies within the bounds of the brick
-                if (ballCenterX >= brick.getPosition().left && ballCenterX <= brick.getPosition().right
-                        && ballCenterY >= brick.getPosition().top && ballCenterY <= brick.getPosition().bottom) {
-                    collided = true;
-                    // Handle collision logic here (e.g., bouncing off the brick)
-                    break; // Exit the loop after handling collision with one brick
-                }
-            }
-        }
-        return collided;
-    }
-
+//    private void checkBallHitBrick() {
+//        boolean collided = false;
+//        for (Brick brick : mBrickList) {
+//            if (brick.inPlay && RectF.intersects(brick.getPosition(), ball.getBounds())) {
+//                // Calculate the center point of the ball
+//                float ballCenterX = ball.getPosX();
+//                float ballCenterY = ball.getPosY();
+//
+//                // Check if the center of the ball lies within the bounds of the brick
+//                if (ballCenterX >= brick.getPosition().left && ballCenterX <= brick.getPosition().right
+//                        && ballCenterY >= brick.getPosition().top && ballCenterY <= brick.getPosition().bottom) {
+//                    collided = true;
+//                    // Handle collision logic here (e.g., bouncing off the brick)
+//                    break; // Exit the loop after handling collision with one brick
+//                }
+//            }
+//        }
+//    }
 
 
-    private boolean checkBallHitWall() {
+
+    private void checkBallHitWall() {
         boolean collided = false;
 
         // Check if the ball collides with any of the walls
@@ -244,7 +280,6 @@ public class BrickBreakingView extends SurfaceView implements Runnable{
             collided = true;
         }
 
-        return collided;
     }
 
 
@@ -252,25 +287,34 @@ public class BrickBreakingView extends SurfaceView implements Runnable{
         if (mOurHolder.getSurface().isValid()) {
             mCanvas = mOurHolder.lockCanvas();
 
-            mCanvas.drawColor(Color.argb(255, 0, 0, 0));
-            mPaint.setColor(Color.argb(255, 255, 255, 255));
+            mCanvas.drawColor(Color.argb(255, 0, 0, 0)); // Black background
+            mPaint.setColor(Color.argb(255, 255, 255, 255)); // White
 
-            for(Brick b: mBrickList){
-                b.draw(mCanvas,mPaint);
+            // Draw the walls
+            for (Brick b : mBrickList) {
+                b.draw(mCanvas, mPaint);
+            }
+
+            // Draw the breakable bricks
+            for (BreakableBrick breakable : breakableBricks) {
+                if (breakable.isActive()) {
+                    mPaint.setColor(breakable.getColor());
+                    mCanvas.drawRect(breakable.getPosition(), mPaint);
+                }
             }
 
 
-            //Draw the stats
+            // Draw the stats
             drawStats(mCanvas);
+
             // Draw the ball
             mCanvas.drawCircle(ball.getPosX(), ball.getPosY(), ball.getRadius(), mPaint);
-            //Draw BreakableBricks
-//            drawBreakableBricks();
 
-            mCanvas.drawBitmap(leftButtonBitmap,null, mLeftButtonCoords,mPaint);
-            mCanvas.drawBitmap(rightButtonBitmap,null, mRightButtonCoords,mPaint);
-            mCanvas.drawBitmap(upButtonBitmap,null, mUpButtonCoords,mPaint);
-            mCanvas.drawBitmap(downButtonBitmap,null, mDownButtonCoords,mPaint);
+            // Draw the arrow buttons
+            mCanvas.drawBitmap(leftButtonBitmap, null, mLeftButtonCoords, mPaint);
+            mCanvas.drawBitmap(rightButtonBitmap, null, mRightButtonCoords, mPaint);
+            mCanvas.drawBitmap(upButtonBitmap, null, mUpButtonCoords, mPaint);
+            mCanvas.drawBitmap(downButtonBitmap, null, mDownButtonCoords, mPaint);
 
             mOurHolder.unlockCanvasAndPost(mCanvas);
         }
@@ -364,16 +408,22 @@ public class BrickBreakingView extends SurfaceView implements Runnable{
     private void drawStats(Canvas canvas) {
         Paint statsPaint = new Paint();
         statsPaint.setColor(Color.WHITE);
-        statsPaint.setTextSize(40);
+        statsPaint.setTextSize(130);
+
+        // Calculate vertical margin or padding
+        int verticalMargin = 80; // Adjust this value as needed
 
         // Draw time elapsed
-        canvas.drawText("Time: " + "00:00:00", 20, 50, statsPaint);
+        canvas.drawText("00:00:00", 20, 50 + verticalMargin, statsPaint);
 
         // Draw number of hits needed
-        canvas.drawText("Hits: " + "072", mScreenX / 2 - 50, 50, statsPaint);
+        canvas.drawText("072", mScreenX / 2 + 20, 50 + verticalMargin, statsPaint);
 
         // Draw number of balls left
-        canvas.drawText("Balls: " + "01", mScreenX - 200, 50, statsPaint);
+        canvas.drawText("01", mScreenX - 200, 50 + verticalMargin, statsPaint);
     }
 
+
+
 }
+

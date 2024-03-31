@@ -7,11 +7,10 @@ public class BreakableBrick {
 
     private RectF position;
     private int color;
-    private boolean breakable;
-    private boolean hit;
+    private boolean active;
 
     // Constants for brick colors
-    public static final int COLOR_GREEN = Color.GREEN;
+    public static final int COLOR_GREEN = Color.GREEN; //collars are actually integers values set by their AlphaRGB value
     public static final int COLOR_YELLOW = Color.YELLOW;
     public static final int COLOR_RED = Color.RED;
 
@@ -19,8 +18,7 @@ public class BreakableBrick {
     public BreakableBrick(RectF position, int color, boolean breakable) {
         this.position = position;
         this.color = color;
-        this.breakable = breakable;
-        this.hit = false;
+        this.active = true;
     }
 
     // Getter methods
@@ -32,28 +30,25 @@ public class BreakableBrick {
         return color;
     }
 
-    public boolean isBreakable() {
-        return breakable;
-    }
 
-    public boolean isHit() {
-        return hit;
+
+    public boolean isActive() {
+        return active;
     }
 
     // Method to handle brick hit
     public void hitBrick() {
-        if (breakable && !hit) {
-            // If the brick is breakable and hasn't been hit before
-            // Change its color and mark it as hit
-            color = COLOR_YELLOW;
-            hit = true;
-        } else if (!breakable) {
-            // If the brick is not breakable, change its color to the next level
-            if (color == COLOR_YELLOW) {
-                color = COLOR_GREEN;
-            } else if (color == COLOR_RED) {
-                color = COLOR_YELLOW;
-            }
+
+
+
+        if(color == COLOR_RED)
+            color=COLOR_YELLOW;
+        else if (color == COLOR_YELLOW)
+            color=COLOR_GREEN;
+        else{
+            //REMOVE IT FROM THE ARRAY IN VIEW
+            active=false;
+            color=Color.argb(0,255,255,255); //invisible white
         }
     }
 }
@@ -61,3 +56,30 @@ public class BreakableBrick {
 
 //if a brick is hit change its color- also decrement hitsLeft.
 //if the brick is green, remove it from the array that draws the bricks to the screen ,
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+//        if (breakable && !hit) {
+////            // If the brick is breakable and hasn't been hit before
+////            // Change its color and mark it as hit
+////            color = COLOR_YELLOW;
+////            hit = true;
+////        } else if (!breakable) {
+////            // If the brick is not breakable, change its color to the next level
+////            if (color == COLOR_YELLOW) {
+////                color = COLOR_GREEN;
+////            } else if (color == COLOR_RED) {
+////                color = COLOR_YELLOW;
+////            }
+////        }
