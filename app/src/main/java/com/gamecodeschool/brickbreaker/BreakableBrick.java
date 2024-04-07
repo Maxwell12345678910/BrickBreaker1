@@ -51,6 +51,10 @@ public class BreakableBrick {
             color=Color.argb(0,255,255,255); //invisible white
         }
     }
+
+    public void setActive(boolean b) {
+        this.active = b;
+    }
 }
 
 

@@ -19,6 +19,8 @@ public class BrickBreakingView extends SurfaceView implements Runnable{
 
     public ArrayList<BreakableBrick> breakableBricks = new ArrayList<>(); //List of BREAKABLE gifts
 
+    private boolean gameStarted = false;
+
     private Ball ball;
     private int BALL_RADIUS = 20;
     private final float BALL_SPEED = 15f; // How many pixels to travel diagonally // each time the screen gets updated.
@@ -187,7 +189,12 @@ public class BrickBreakingView extends SurfaceView implements Runnable{
 
     public void update(){
 
+        if (!gameStarted) {
+            return; // Don't update anything until the game starts
+        }
+
         ball.update();
+
 
         if(leftButtonDown){
             movePaddleLeft(1f);
@@ -201,7 +208,7 @@ public class BrickBreakingView extends SurfaceView implements Runnable{
 
 
         checkBallPaddleCollision();
-//        checkBallHitBrick();
+        checkBallHitBrick();
         checkBallHitWall();
 
 
@@ -221,52 +228,30 @@ public class BrickBreakingView extends SurfaceView implements Runnable{
             // Implement collision response here
             // For example, reverse the vertical direction of the ball
             ball.setIncreaseY(-Math.abs(ball.getIncreaseY()));
-//            return true; // Collision detected
         }
 
-//        return false; // No collision detected
     }
 
-//    private void checkBallHitBrick() {
-//        boolean collided = false;
-//        for (Brick brick : mBrickList) {
-//            if (brick.inPlay && RectF.intersects(brick.getPosition(), ball.getBounds())) {
-//                // Calculate the center point of the ball
-//                float ballCenterX = ball.getPosX();
-//                float ballCenterY = ball.getPosY();
-//
-//                // Check if the center of the ball lies within the bounds of the brick
-//                if (ballCenterX >= brick.getPosition().left && ballCenterX <= brick.getPosition().right
-//                        && ballCenterY >= brick.getPosition().top && ballCenterY <= brick.getPosition().bottom) {
-//                    collided = true;
-//                    // Handle collision logic here (e.g., bouncing off the brick)
-//                    break; // Exit the loop after handling collision with one brick
-//                }
-//            }
-//        }
-//    }
 
 
 
     private void checkBallHitWall() {
-        boolean collided = false;
 
-        // Check if the ball collides with any of the walls
         // Left wall
         if (ball.getPosX() - ball.getRadius() <= (playFieldCoords.left+40)) {
             ball.setIncreaseX(Math.abs(ball.getIncreaseX())); // Reverse X direction
-            collided = true;
+
         }
         // Right wall
         else if (ball.getPosX() + ball.getRadius() >= (playFieldCoords.right-40)) {
             ball.setIncreaseX(-Math.abs(ball.getIncreaseX())); // Reverse X direction
-            collided = true;
+
         }
 
         // Top wall
         if (ball.getPosY() - ball.getRadius() <= (playFieldCoords.top+40)) {
             ball.setIncreaseY(Math.abs(ball.getIncreaseY())); // Reverse Y direction
-            collided = true;
+
         }
 
 
@@ -277,38 +262,95 @@ public class BrickBreakingView extends SurfaceView implements Runnable{
             ball.setPosX(mScreenX / 2);
             ball.setPosY(mScreenY / 2);
             // You might want to set increaseX and increaseY to appropriate initial values
-            collided = true;
+
+
         }
 
     }
 
 
+    private void checkBallHitBrick2() {
+        RectF ballBounds = ball.getBounds();
+
+        for (BreakableBrick brick : breakableBricks) {
+            if (brick.isActive()) {
+                RectF brickBounds = brick.getPosition();
+
+                // Check if the ball intersects with the brick
+                if (RectF.intersects(ballBounds, brickBounds)) {
+                    // Determine which side of the brick the ball hits
+
+
+                    //ADD OR SUBTRACKS TO THE BOUNDS AT THE END OF THE LINE BY 5-10
+                    boolean hitTop = ballBounds.bottom >= brickBounds.top && ballBounds.bottom <= brickBounds.top;
+                    boolean hitBottom = ballBounds.top <= brickBounds.bottom && ballBounds.top >= brickBounds.bottom ;
+                    boolean hitLeft = ballBounds.right >= brickBounds.left && ballBounds.right <= brickBounds.left ;
+                    boolean hitRight = ballBounds.left <= brickBounds.right && ballBounds.left >= brickBounds.right;
+
+                    // Respond to the collision based on the side hit
+                    if (hitTop || hitBottom) {
+                        ball.setIncreaseY(-ball.getIncreaseY()); // Reverse Y direction
+                    }
+                    if (hitLeft || hitRight) {
+                        ball.setIncreaseX(-ball.getIncreaseX()); // Reverse X direction
+                    }
+
+                    // Deactivate the brick
+                    brick.setActive(false);
+                }
+            }
+        }
+    }
+
+    private void checkBallHitBrick() {
+        RectF ballBounds = ball.getBounds(); // Get the bounds of the ball
+
+        // Iterate over each breakable brick
+        for (BreakableBrick brick : breakableBricks) {
+            // Check if the brick is active and intersects with the ball
+            if (brick.isActive() && RectF.intersects(ballBounds, brick.getPosition())) {
+                // Handle the collision, for example, mark the brick as inactive and change ball direction
+                brick.setActive(false);
+                // Change ball direction, you might need to adjust this based on your game logic
+                ball.setIncreaseX(-ball.getIncreaseX());
+                ball.setIncreaseY(-ball.getIncreaseY());
+                // You might want to break the loop here if you want to handle only one brick collision per frame
+                break;
+            }
+        }
+    }
+
     private void draw() {
+
+
         if (mOurHolder.getSurface().isValid()) {
             mCanvas = mOurHolder.lockCanvas();
 
             mCanvas.drawColor(Color.argb(255, 0, 0, 0)); // Black background
-            mPaint.setColor(Color.argb(255, 255, 255, 255)); // White
-
-            // Draw the walls
-            for (Brick b : mBrickList) {
-                b.draw(mCanvas, mPaint);
-            }
-
-            // Draw the breakable bricks
-            for (BreakableBrick breakable : breakableBricks) {
-                if (breakable.isActive()) {
-                    mPaint.setColor(breakable.getColor());
-                    mCanvas.drawRect(breakable.getPosition(), mPaint);
-                }
-            }
-
 
             // Draw the stats
             drawStats(mCanvas);
 
-            // Draw the ball
-            mCanvas.drawCircle(ball.getPosX(), ball.getPosY(), ball.getRadius(), mPaint);
+            // Draw the walls
+            for (Brick b : mBrickList) {
+                mPaint.setColor(Color.argb(255, 255, 255, 255)); // White
+                b.draw(mCanvas, mPaint);
+            }
+
+            if(gameStarted) //we only want the bricks and ball drawn if the game has begun
+            {// Draw the breakable bricks
+                for (BreakableBrick breakable : breakableBricks) {
+                    if (breakable.isActive()) {
+                        mPaint.setColor(breakable.getColor());
+                        mCanvas.drawRect(breakable.getPosition(), mPaint);
+                    }
+                }
+
+
+                // Draw the ball
+                mPaint.setColor(Color.argb(255, 255, 255, 255)); // White
+                mCanvas.drawCircle(ball.getPosX(), ball.getPosY(), ball.getRadius(), mPaint);
+            }
 
             // Draw the arrow buttons
             mCanvas.drawBitmap(leftButtonBitmap, null, mLeftButtonCoords, mPaint);
@@ -328,6 +370,8 @@ public class BrickBreakingView extends SurfaceView implements Runnable{
     }
     void movePaddleLeft(float times){
         paddle.offset(-BALL_SPEED *times, 0f);
+        if(!gameStarted)//begin the game if it hasnt been already
+            startNewGame();
     }
     void movePaddleRight(float times){
         paddle.offset(BALL_SPEED *times, 0f);
@@ -357,6 +401,7 @@ public class BrickBreakingView extends SurfaceView implements Runnable{
         int maskedAction = motionEvent.getAction() & MotionEvent.ACTION_MASK;
         float motionPosX = motionEvent.getX();
         float motionPosY = motionEvent.getY();
+
         if(maskedAction == MotionEvent.ACTION_DOWN){
             if(mRightButtonCoords.contains(motionPosX,motionPosY)){
                 rightButtonDown = true;
@@ -389,9 +434,9 @@ public class BrickBreakingView extends SurfaceView implements Runnable{
         }
 
         // Check for left paddle movement
-        if (motionEvent.getAction() == MotionEvent.ACTION_DOWN && motionEvent.getX() < mScreenX / 2) {
-            startNewGame();
-        }
+//        if (mLeftButtonCoords.contains(motionPosX,motionPosY)  && !gameStarted) {
+//            startNewGame();
+//        }
 
         return true;
     }
@@ -403,6 +448,8 @@ public class BrickBreakingView extends SurfaceView implements Runnable{
         ball.setPosY(paddle.getPosition().top - ball.getRadius());
         ball.setIncreaseX(5f); // Set initial velocity
         ball.setIncreaseY(-5f);
+
+        gameStarted=true;
     }
 
     private void drawStats(Canvas canvas) {
