@@ -1,17 +1,24 @@
 package com.gamecodeschool.brickbreaker;
 
 import android.content.Context;
+import android.content.res.AssetFileDescriptor;
+import android.content.res.AssetManager;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.RectF;
+import android.media.AudioAttributes;
+import android.media.AudioManager;
+import android.media.SoundPool;
+import android.os.Build;
 import android.util.Log;
 import android.view.MotionEvent;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 
+import java.io.IOException;
 import java.util.ArrayList;
 
 public class BrickBreakingView extends SurfaceView implements Runnable{
@@ -19,6 +26,16 @@ public class BrickBreakingView extends SurfaceView implements Runnable{
     boolean gameWon = false;
     boolean gameLost = false;
     private boolean paddleMovedLeft = false;
+
+    private Context mContext;
+
+    SoundPool soundPlayer;
+    int nowPlaying = -1;
+    float volume = .1f;
+    int repeats = 1;
+    int soundFX1 = 999;
+    int soundFX2 = 999;
+    private long lastPlayTime = 0; // Variable to store the time of the last sound play
 
 
     int ballsLeft = 3;
@@ -82,6 +99,7 @@ public class BrickBreakingView extends SurfaceView implements Runnable{
     //CONSTRUCTOR , STUFF THAT SHOULD BE DONE FOR FIRST GAME LAUNCH SHOULD BE TRIGGERED HERE
     public BrickBreakingView(Context context, int x, int y) {
         super(context);
+        mContext = context;
 
         ball = new Ball(mScreenX / 2, mScreenY / 2, 5f, -5f, BALL_RADIUS);
 
@@ -246,8 +264,7 @@ public class BrickBreakingView extends SurfaceView implements Runnable{
         // Convert elapsed time to a formatted string (HH:MM:SS)
         elapsedTimeString = String.format("%01d:%02d:%02d", elapsedTimeSeconds / 3600, (elapsedTimeSeconds % 3600) / 60, elapsedTimeSeconds % 60);
 
-        // Log the formatted string
-        Log.d("Timer", "Elapsed Time: " + elapsedTimeString);
+
 
     }
 
@@ -261,29 +278,40 @@ public class BrickBreakingView extends SurfaceView implements Runnable{
         if (RectF.intersects(ballBounds, paddleBounds)) {
             // Implement collision response here
             // For example, reverse the vertical direction of the ball
+            playSound1();
             ball.setIncreaseY(-Math.abs(ball.getIncreaseY()));
         }
 
     }
 
 
+    private void playSound1() {
+        Log.d("method called", "PLAY SOUND 1 GOT CALLED");
+        nowPlaying = soundPlayer.play(soundFX1, volume, volume, 0, 0, 1);
+    }
 
-
+    private void playSound2() {
+        Log.d("method called", "PLAY SOUND 2 GOT CALLED");
+        nowPlaying = soundPlayer.play(soundFX2, volume, volume, 0, 0, 1);
+    }
     private void checkBallHitWall() {
 
         // Left wall
         if (ball.getPosX() - ball.getRadius() <= (playFieldCoords.left+40)) {
+            playSound1();
             ball.setIncreaseX(Math.abs(ball.getIncreaseX())); // Reverse X direction
 
         }
         // Right wall
         else if (ball.getPosX() + ball.getRadius() >= (playFieldCoords.right-40)) {
+            playSound1();
             ball.setIncreaseX(-Math.abs(ball.getIncreaseX())); // Reverse X direction
 
         }
 
         // Top wall
         if (ball.getPosY() - ball.getRadius() <= (playFieldCoords.top+40)) {
+            playSound1();
             ball.setIncreaseY(Math.abs(ball.getIncreaseY())); // Reverse Y direction
 
         }
@@ -378,6 +406,7 @@ public class BrickBreakingView extends SurfaceView implements Runnable{
                 if(brick.getColor()==Color.GREEN)
                     brick.setActive(false);
                 brick.hitBrick();
+                playSound2();
                 // Change ball direction
                 ball.setIncreaseX(-ball.getIncreaseX());
                 ball.setIncreaseY(-ball.getIncreaseY());
@@ -449,8 +478,7 @@ public class BrickBreakingView extends SurfaceView implements Runnable{
             startNewGame();
     }
     void movePaddleRight(float times){
-//        if(gameLost || gameWon)
-//            restartGame(); // Restart the game
+
         paddle.offset(BALL_SPEED *times, 0f);
     }
 
@@ -509,6 +537,8 @@ public class BrickBreakingView extends SurfaceView implements Runnable{
                 if (paddleMovedLeft && (gameWon || gameLost))
                     restartGame(); // Restart the game if paddle moved left and then right
 
+
+
                 paddleMovedLeft = false;
                 movePaddleRight(1f);
 
@@ -556,11 +586,47 @@ public class BrickBreakingView extends SurfaceView implements Runnable{
         ball.setIncreaseX(5f); // Set initial velocity
         ball.setIncreaseY(-5f);
 
+
+        //set up the sound player
+        // Instantiate our SoundPool based on the version of Android
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            AudioAttributes audioAttributes =
+                    new AudioAttributes.Builder()
+                            .setUsage(AudioAttributes.
+                                    USAGE_ASSISTANCE_SONIFICATION)
+                            .setContentType(
+                                    AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                            .build();
+            soundPlayer = new SoundPool.Builder()
+                    .setMaxStreams(5)
+                    .setAudioAttributes(audioAttributes)
+                    .build();
+        } else
+            soundPlayer = new SoundPool(5, AudioManager.STREAM_MUSIC, 0);
+
+        try{
+            // Create objects of the 2 required classes
+
+            AssetManager assetManager = mContext.getAssets();
+
+            AssetFileDescriptor descriptor;
+            // Load our fx in memory ready for use
+            descriptor = assetManager.openFd("fx1.ogg");
+            soundFX1 = soundPlayer.load(descriptor, 0);
+            descriptor = assetManager.openFd("fx2.ogg");
+            soundFX2 = soundPlayer.load(descriptor, 0);
+        }catch(IOException e) {
+            Log.e("error", "failed to load sound files");
+        }
+
+
         timer = System.currentTimeMillis();        //start the timer
 
 
         gameStarted=true;
     }
+
+
 
     private void drawStats(Canvas canvas) {
         Paint statsPaint = new Paint();
