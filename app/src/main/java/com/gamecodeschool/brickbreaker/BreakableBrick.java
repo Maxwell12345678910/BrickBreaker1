@@ -39,17 +39,11 @@ public class BreakableBrick {
     // Method to handle brick hit
     public void hitBrick() {
 
+        if(this.color == COLOR_RED)
+            this.color=COLOR_YELLOW;
+        else if (this.color == COLOR_YELLOW)
+            this.color=COLOR_GREEN;
 
-
-        if(color == COLOR_RED)
-            color=COLOR_YELLOW;
-        else if (color == COLOR_YELLOW)
-            color=COLOR_GREEN;
-        else{
-            //REMOVE IT FROM THE ARRAY IN VIEW
-            active=false;
-            color=Color.argb(0,255,255,255); //invisible white
-        }
     }
 
     public void setActive(boolean b) {

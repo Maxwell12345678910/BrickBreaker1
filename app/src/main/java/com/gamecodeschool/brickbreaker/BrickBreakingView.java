@@ -16,6 +16,11 @@ import java.util.ArrayList;
 
 public class BrickBreakingView extends SurfaceView implements Runnable{
 
+    String hitsLeftStr="072";
+    int hitsLeft=72;
+    public long timer= 0;
+    long elapsedTimeSeconds = 0;
+    String elapsedTimeString = "0:00:00";
 
     public ArrayList<BreakableBrick> breakableBricks = new ArrayList<>(); //List of BREAKABLE gifts
 
@@ -181,7 +186,16 @@ public class BrickBreakingView extends SurfaceView implements Runnable{
 
                 // Create breakable brick and add it to the list
                 RectF position = new RectF(left, top, right, bottom);
-                BreakableBrick brick = new BreakableBrick(position, BreakableBrick.COLOR_GREEN,true);
+
+                int color;//set the color of the brick based on its row value
+                if(row == 0)
+                    color = Color.RED;
+                else if(row == 1)
+                        color = Color.YELLOW;
+                else color = Color.GREEN;
+
+
+                BreakableBrick brick = new BreakableBrick(position, color,true);
                 breakableBricks.add(brick);
             }
         }
@@ -214,6 +228,15 @@ public class BrickBreakingView extends SurfaceView implements Runnable{
 
         bottomLeftBrick.setInPlay(paddle.atLeftBottomLimit());
         bottomRightBrick.setInPlay(paddle.atRightBottomLimit());
+
+        // Calculate elapsed time in seconds
+        elapsedTimeSeconds = (System.currentTimeMillis() - timer) / 1000;
+
+        // Convert elapsed time to a formatted string (HH:MM:SS)
+        elapsedTimeString = String.format("%01d:%02d:%02d", elapsedTimeSeconds / 3600, (elapsedTimeSeconds % 3600) / 60, elapsedTimeSeconds % 60);
+
+        // Log the formatted string
+        Log.d("Timer", "Elapsed Time: " + elapsedTimeString);
 
     }
 
@@ -269,38 +292,38 @@ public class BrickBreakingView extends SurfaceView implements Runnable{
     }
 
 
-    private void checkBallHitBrick2() {
-        RectF ballBounds = ball.getBounds();
-
-        for (BreakableBrick brick : breakableBricks) {
-            if (brick.isActive()) {
-                RectF brickBounds = brick.getPosition();
-
-                // Check if the ball intersects with the brick
-                if (RectF.intersects(ballBounds, brickBounds)) {
-                    // Determine which side of the brick the ball hits
-
-
-                    //ADD OR SUBTRACKS TO THE BOUNDS AT THE END OF THE LINE BY 5-10
-                    boolean hitTop = ballBounds.bottom >= brickBounds.top && ballBounds.bottom <= brickBounds.top;
-                    boolean hitBottom = ballBounds.top <= brickBounds.bottom && ballBounds.top >= brickBounds.bottom ;
-                    boolean hitLeft = ballBounds.right >= brickBounds.left && ballBounds.right <= brickBounds.left ;
-                    boolean hitRight = ballBounds.left <= brickBounds.right && ballBounds.left >= brickBounds.right;
-
-                    // Respond to the collision based on the side hit
-                    if (hitTop || hitBottom) {
-                        ball.setIncreaseY(-ball.getIncreaseY()); // Reverse Y direction
-                    }
-                    if (hitLeft || hitRight) {
-                        ball.setIncreaseX(-ball.getIncreaseX()); // Reverse X direction
-                    }
-
-                    // Deactivate the brick
-                    brick.setActive(false);
-                }
-            }
-        }
-    }
+//    private void checkBallHitBrick2() {
+//        RectF ballBounds = ball.getBounds();
+//
+//        for (BreakableBrick brick : breakableBricks) {
+//            if (brick.isActive()) {
+//                RectF brickBounds = brick.getPosition();
+//
+//                // Check if the ball intersects with the brick
+//                if (RectF.intersects(ballBounds, brickBounds)) {
+//                    // Determine which side of the brick the ball hits
+//
+//
+//                    //ADD OR SUBTRACKS TO THE BOUNDS AT THE END OF THE LINE BY 5-10
+//                    boolean hitTop = ballBounds.bottom >= brickBounds.top && ballBounds.bottom <= brickBounds.top;
+//                    boolean hitBottom = ballBounds.top <= brickBounds.bottom && ballBounds.top >= brickBounds.bottom ;
+//                    boolean hitLeft = ballBounds.right >= brickBounds.left && ballBounds.right <= brickBounds.left ;
+//                    boolean hitRight = ballBounds.left <= brickBounds.right && ballBounds.left >= brickBounds.right;
+//
+//                    // Respond to the collision based on the side hit
+//                    if (hitTop || hitBottom) {
+//                        ball.setIncreaseY(-ball.getIncreaseY()); // Reverse Y direction
+//                    }
+//                    if (hitLeft || hitRight) {
+//                        ball.setIncreaseX(-ball.getIncreaseX()); // Reverse X direction
+//                    }
+//
+//                    // Deactivate the brick
+//                    brick.setActive(false);
+//                }
+//            }
+//        }
+//    }
 
     private void checkBallHitBrick() {
         RectF ballBounds = ball.getBounds(); // Get the bounds of the ball
@@ -308,13 +331,15 @@ public class BrickBreakingView extends SurfaceView implements Runnable{
         // Iterate over each breakable brick
         for (BreakableBrick brick : breakableBricks) {
             // Check if the brick is active and intersects with the ball
-            if (brick.isActive() && RectF.intersects(ballBounds, brick.getPosition())) {
-                // Handle the collision, for example, mark the brick as inactive and change ball direction
-                brick.setActive(false);
-                // Change ball direction, you might need to adjust this based on your game logic
+            if (brick.isActive() && RectF.intersects(ballBounds, brick.getPosition())) { // Handle the collision, for example, mark the brick as inactive or change its color and change ball direction
+                hitsLeft--;
+                if(brick.getColor()==Color.GREEN)
+                    brick.setActive(false);
+                brick.hitBrick();
+                // Change ball direction
                 ball.setIncreaseX(-ball.getIncreaseX());
                 ball.setIncreaseY(-ball.getIncreaseY());
-                // You might want to break the loop here if you want to handle only one brick collision per frame
+                // break the loop- handle only one brick collision per frame
                 break;
             }
         }
@@ -433,10 +458,7 @@ public class BrickBreakingView extends SurfaceView implements Runnable{
             }
         }
 
-        // Check for left paddle movement
-//        if (mLeftButtonCoords.contains(motionPosX,motionPosY)  && !gameStarted) {
-//            startNewGame();
-//        }
+
 
         return true;
     }
@@ -449,6 +471,9 @@ public class BrickBreakingView extends SurfaceView implements Runnable{
         ball.setIncreaseX(5f); // Set initial velocity
         ball.setIncreaseY(-5f);
 
+        timer = System.currentTimeMillis();        //start the timer
+
+
         gameStarted=true;
     }
 
@@ -456,15 +481,18 @@ public class BrickBreakingView extends SurfaceView implements Runnable{
         Paint statsPaint = new Paint();
         statsPaint.setColor(Color.WHITE);
         statsPaint.setTextSize(130);
+        int verticalMargin = 80;         // Calculate vertical margin or padding for the stats text layout
 
-        // Calculate vertical margin or padding
-        int verticalMargin = 80; // Adjust this value as needed
+        if (hitsLeft<100) //append a 0 to the string if the hits left # is less than 3 digits
+            hitsLeftStr = "0" + String.valueOf(hitsLeft);
+        else hitsLeftStr = String.valueOf(hitsLeft);
+
 
         // Draw time elapsed
-        canvas.drawText("00:00:00", 20, 50 + verticalMargin, statsPaint);
+        canvas.drawText(elapsedTimeString, 20, 50 + verticalMargin, statsPaint);
 
         // Draw number of hits needed
-        canvas.drawText("072", mScreenX / 2 + 20, 50 + verticalMargin, statsPaint);
+        canvas.drawText(hitsLeftStr, mScreenX / 2 + 20, 50 + verticalMargin, statsPaint);
 
         // Draw number of balls left
         canvas.drawText("01", mScreenX - 200, 50 + verticalMargin, statsPaint);
