@@ -16,6 +16,13 @@ import java.util.ArrayList;
 
 public class BrickBreakingView extends SurfaceView implements Runnable{
 
+    boolean gameWon = false;
+    boolean gameLost = false;
+    private boolean paddleMovedLeft = false;
+
+
+    int ballsLeft = 3;
+    String ballsLeftStr = "03";
     String hitsLeftStr="072";
     int hitsLeft=72;
     public long timer= 0;
@@ -40,6 +47,7 @@ public class BrickBreakingView extends SurfaceView implements Runnable{
     final private int PFTPYAbs = 150; // Play Field Top Position Y Absolute
     private Brick bottomLeftBrick; // The brick that appears at bottom left when the paddle is there
     private Brick bottomRightBrick; // The brick that appears at the bottom right when the paddle is there
+    float playFieldBottomPositionY;
     private RectF playFieldCoords; // The play field coordinates including the top, side, bottom bricks
                                      // The constructor determines this based on the screen size
                                      // and the constant parameters above
@@ -80,9 +88,9 @@ public class BrickBreakingView extends SurfaceView implements Runnable{
 
         mScreenX = x;
         mScreenY = y;
-        PADDLE_WIDTH = mScreenX/4; // set the paddle with to be 1/4 of screen width
+        PADDLE_WIDTH = mScreenX/4; // set the paddle width to be 1/4 of screen width
         entireScreenCoords = new RectF(0,0,mScreenX-1,mScreenY-1);
-        float playFieldBottomPositionY = mScreenY*PFBPY;
+        playFieldBottomPositionY = mScreenY*PFBPY;
         playFieldCoords = new RectF(0,PFTPYAbs,mScreenX-1,
                 (int)(playFieldBottomPositionY)-1);
 
@@ -155,6 +163,7 @@ public class BrickBreakingView extends SurfaceView implements Runnable{
                 true, false, 0,
                 BRICK_THICKNESS,(playFieldCoords.top+ playFieldCoords.bottom)/2f,
                 mScreenX-BRICK_THICKNESS-1,(int)(playFieldBottomPositionY)-1);
+
         mBrickList.add(paddle);
 
         initBreakBricks();
@@ -207,7 +216,8 @@ public class BrickBreakingView extends SurfaceView implements Runnable{
             return; // Don't update anything until the game starts
         }
 
-        ball.update();
+        if(!gameWon && !gameLost)
+            ball.update();
 
 
         if(leftButtonDown){
@@ -230,7 +240,8 @@ public class BrickBreakingView extends SurfaceView implements Runnable{
         bottomRightBrick.setInPlay(paddle.atRightBottomLimit());
 
         // Calculate elapsed time in seconds
-        elapsedTimeSeconds = (System.currentTimeMillis() - timer) / 1000;
+        if(!gameWon && !gameLost)
+            elapsedTimeSeconds = (System.currentTimeMillis() - timer) / 1000;
 
         // Convert elapsed time to a formatted string (HH:MM:SS)
         elapsedTimeString = String.format("%01d:%02d:%02d", elapsedTimeSeconds / 3600, (elapsedTimeSeconds % 3600) / 60, elapsedTimeSeconds % 60);
@@ -278,18 +289,43 @@ public class BrickBreakingView extends SurfaceView implements Runnable{
         }
 
 
-        // (missed the paddle)
-        else if (ball.getPosY() + ball.getRadius() >= playFieldCoords.bottom) { // BALL FELL OFF THE SCREEN
-            // Handle game over or reset ball position
-            // For now, let's reset the ball position to the center
-            ball.setPosX(mScreenX / 2);
-            ball.setPosY(mScreenY / 2);
-            // You might want to set increaseX and increaseY to appropriate initial values
+        // (paddle missed the ball , lose a ball)
+        else if (ball.getPosY() + ball.getRadius() >= playFieldCoords.bottom) {
+
+            // Reset the paddle position
+            resetPaddlePosition();
+
+
+            if(ballsLeft>0)
+                ballsLeft--;//decrement the ball count
+            ballsLeftStr = "0" + ballsLeft;//update the string
+
+
+            if(ballsLeft == 0)//user lost the game
+                gameLost = true;
+
+            //reset the ball to the center position, otherwise nothing is done if the user lost or won
+            if(!gameWon && !gameLost)
+            {
+                ball.setPosX(mScreenX / 2);
+                ball.setPosY(mScreenY / 2);
+            }
 
 
         }
 
     }
+
+    public void resetPaddlePosition() {
+        // Reset the paddle position to its initial starting position
+        paddle = new Brick(BRICK_THICKNESS, (int) (playFieldBottomPositionY) - BRICK_THICKNESS,
+                BRICK_THICKNESS + PADDLE_WIDTH - 1, (int) (playFieldBottomPositionY) - 1,
+                true, false, 0,
+                BRICK_THICKNESS, (playFieldCoords.top + playFieldCoords.bottom) / 2f,
+                mScreenX - BRICK_THICKNESS - 1, (int) (playFieldBottomPositionY) - 1);
+        mBrickList.set(mBrickList.size() - 1, paddle); // Replace the paddle in the brick list
+    }
+
 
 
 //    private void checkBallHitBrick2() {
@@ -326,6 +362,9 @@ public class BrickBreakingView extends SurfaceView implements Runnable{
 //    }
 
     private void checkBallHitBrick() {
+        if(gameWon || gameLost)
+            return;
+
         RectF ballBounds = ball.getBounds(); // Get the bounds of the ball
 
         // Iterate over each breakable brick
@@ -333,12 +372,19 @@ public class BrickBreakingView extends SurfaceView implements Runnable{
             // Check if the brick is active and intersects with the ball
             if (brick.isActive() && RectF.intersects(ballBounds, brick.getPosition())) { // Handle the collision, for example, mark the brick as inactive or change its color and change ball direction
                 hitsLeft--;
+
+
+
                 if(brick.getColor()==Color.GREEN)
                     brick.setActive(false);
                 brick.hitBrick();
                 // Change ball direction
                 ball.setIncreaseX(-ball.getIncreaseX());
                 ball.setIncreaseY(-ball.getIncreaseY());
+
+                if(hitsLeft == 0) //win condition
+                    gameWon = true;
+
                 // break the loop- handle only one brick collision per frame
                 break;
             }
@@ -374,8 +420,12 @@ public class BrickBreakingView extends SurfaceView implements Runnable{
 
                 // Draw the ball
                 mPaint.setColor(Color.argb(255, 255, 255, 255)); // White
+                if(gameLost || gameWon) //make the ball transparent if the user lost or won
+                    mPaint.setColor(Color.argb(0,0,0,0));
                 mCanvas.drawCircle(ball.getPosX(), ball.getPosY(), ball.getRadius(), mPaint);
             }
+
+            mPaint.setColor(Color.argb(255, 255, 255, 255)); // White
 
             // Draw the arrow buttons
             mCanvas.drawBitmap(leftButtonBitmap, null, mLeftButtonCoords, mPaint);
@@ -399,8 +449,33 @@ public class BrickBreakingView extends SurfaceView implements Runnable{
             startNewGame();
     }
     void movePaddleRight(float times){
+//        if(gameLost || gameWon)
+//            restartGame(); // Restart the game
         paddle.offset(BALL_SPEED *times, 0f);
     }
+
+    private void restartGame() {
+        gameWon = false;
+        gameLost = false;
+        ballsLeft = 3;
+        ballsLeftStr = "03";
+        hitsLeftStr = "072";
+        hitsLeft = 72;
+        timer = 0;
+        elapsedTimeSeconds = 0;
+        elapsedTimeString = "0:00:00";
+
+        // Clear breakable bricks and initialize them again
+        breakableBricks.clear();
+        initBreakBricks();
+
+        // Reset the paddle position
+        resetPaddlePosition();
+
+        // Start a new game
+        startNewGame();
+    }
+
     void movePaddleUp(float times){
         paddle.offset(0f, -BALL_SPEED *times);
     }
@@ -427,28 +502,41 @@ public class BrickBreakingView extends SurfaceView implements Runnable{
         float motionPosX = motionEvent.getX();
         float motionPosY = motionEvent.getY();
 
-        if(maskedAction == MotionEvent.ACTION_DOWN){
-            if(mRightButtonCoords.contains(motionPosX,motionPosY)){
+        if (maskedAction == MotionEvent.ACTION_DOWN) {
+            if (mRightButtonCoords.contains(motionPosX, motionPosY)) {
                 rightButtonDown = true;
+
+                if (paddleMovedLeft && (gameWon || gameLost))
+                    restartGame(); // Restart the game if paddle moved left and then right
+
+                paddleMovedLeft = false;
                 movePaddleRight(1f);
-            } else if(mLeftButtonCoords.contains(motionPosX,motionPosY)){
+
+            }
+            else if (mLeftButtonCoords.contains(motionPosX, motionPosY)) {
                 leftButtonDown = true;
+                paddleMovedLeft = true; // Set paddle moved left flag
                 movePaddleLeft(1f);
-            }else if(mUpButtonCoords.contains(motionPosX,motionPosY)){
+            }
+            else if (mUpButtonCoords.contains(motionPosX, motionPosY)) {
                 upButtonDown = true;
+                paddleMovedLeft = false;
+
                 movePaddleUp(1f);
-            } else if(mDownButtonCoords.contains(motionPosX,motionPosY)){
+            } else if (mDownButtonCoords.contains(motionPosX, motionPosY)) {
                 downButtonDown = true;
+                paddleMovedLeft = false;
+
                 movePaddleDown(1f);
             }
-        } else if(maskedAction == MotionEvent.ACTION_UP || maskedAction == MotionEvent.ACTION_CANCEL){
-            if(mRightButtonCoords.contains(motionPosX,motionPosY)){
+        } else if (maskedAction == MotionEvent.ACTION_UP || maskedAction == MotionEvent.ACTION_CANCEL) {
+            if (mRightButtonCoords.contains(motionPosX, motionPosY)) {
                 rightButtonDown = false;
-            } else if(mLeftButtonCoords.contains(motionPosX,motionPosY)){
+            } else if (mLeftButtonCoords.contains(motionPosX, motionPosY)) {
                 leftButtonDown = false;
-            } else if(mUpButtonCoords.contains(motionPosX,motionPosY)){
+            } else if (mUpButtonCoords.contains(motionPosX, motionPosY)) {
                 upButtonDown = false;
-            } else if(mDownButtonCoords.contains(motionPosX,motionPosY)){
+            } else if (mDownButtonCoords.contains(motionPosX, motionPosY)) {
                 downButtonDown = false;
             } else { // must be action cancel. Consider both buttons to be up now.
                 rightButtonDown = false;
@@ -458,11 +546,8 @@ public class BrickBreakingView extends SurfaceView implements Runnable{
             }
         }
 
-
-
         return true;
     }
-
     private void startNewGame() {
         // Reset necessary game parameters
         // Load ball onto paddle
@@ -479,23 +564,29 @@ public class BrickBreakingView extends SurfaceView implements Runnable{
 
     private void drawStats(Canvas canvas) {
         Paint statsPaint = new Paint();
-        statsPaint.setColor(Color.WHITE);
+
+        if (gameWon)
+            statsPaint.setColor(Color.GREEN);
+        else if (gameLost)
+            statsPaint.setColor(Color.RED);
+        else
+            statsPaint.setColor(Color.WHITE);
+
         statsPaint.setTextSize(130);
         int verticalMargin = 80;         // Calculate vertical margin or padding for the stats text layout
 
+        //hits left
         if (hitsLeft<100) //append a 0 to the string if the hits left # is less than 3 digits
             hitsLeftStr = "0" + String.valueOf(hitsLeft);
         else hitsLeftStr = String.valueOf(hitsLeft);
-
-
-        // Draw time elapsed
-        canvas.drawText(elapsedTimeString, 20, 50 + verticalMargin, statsPaint);
-
         // Draw number of hits needed
         canvas.drawText(hitsLeftStr, mScreenX / 2 + 20, 50 + verticalMargin, statsPaint);
 
+        // Draw time elapsed
+        canvas.drawText(elapsedTimeString, 20, 50 + verticalMargin, statsPaint);
         // Draw number of balls left
-        canvas.drawText("01", mScreenX - 200, 50 + verticalMargin, statsPaint);
+        canvas.drawText(ballsLeftStr, mScreenX - 200, 50 + verticalMargin, statsPaint);
+
     }
 
 
