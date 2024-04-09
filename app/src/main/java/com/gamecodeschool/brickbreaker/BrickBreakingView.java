@@ -22,6 +22,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 
 public class BrickBreakingView extends SurfaceView implements Runnable{
+    boolean ballRespawn = false;
 
     boolean gameWon = false;
     boolean gameLost = false;
@@ -234,7 +235,7 @@ public class BrickBreakingView extends SurfaceView implements Runnable{
             return; // Don't update anything until the game starts
         }
 
-        if(!gameWon && !gameLost)
+        if(!gameWon && !gameLost && !ballRespawn)
             ball.update();
 
 
@@ -278,7 +279,10 @@ public class BrickBreakingView extends SurfaceView implements Runnable{
         if (RectF.intersects(ballBounds, paddleBounds)) {
             // Implement collision response here
             // For example, reverse the vertical direction of the ball
-            playSound1();
+           if(!gameWon && !gameLost) //when the game ends the balls spawns on the paddle and becomes invisible but its presence causes the sound to spam
+            {
+                playSound1();
+            }
             ball.setIncreaseY(-Math.abs(ball.getIncreaseY()));
         }
 
@@ -333,12 +337,13 @@ public class BrickBreakingView extends SurfaceView implements Runnable{
                 gameLost = true;
 
             //reset the ball to the center position, otherwise nothing is done if the user lost or won
+            // Spawn the ball just over the paddle
             if(!gameWon && !gameLost)
             {
-                ball.setPosX(mScreenX / 2);
-                ball.setPosY(mScreenY / 2);
+                ball.setPosX(paddle.getPosition().centerX());
+                ball.setPosY(paddle.getPosition().top - ball.getRadius());
+                ballRespawn = true;
             }
-
 
         }
 
@@ -408,7 +413,7 @@ public class BrickBreakingView extends SurfaceView implements Runnable{
                 brick.hitBrick();
                 playSound2();
                 // Change ball direction
-                ball.setIncreaseX(-ball.getIncreaseX());
+                ball.setIncreaseX(ball.getIncreaseX());
                 ball.setIncreaseY(-ball.getIncreaseY());
 
                 if(hitsLeft == 0) //win condition
@@ -537,6 +542,8 @@ public class BrickBreakingView extends SurfaceView implements Runnable{
                 if (paddleMovedLeft && (gameWon || gameLost))
                     restartGame(); // Restart the game if paddle moved left and then right
 
+                if (paddleMovedLeft && ballRespawn)
+                    ballRespawn = false;
 
 
                 paddleMovedLeft = false;
